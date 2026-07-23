@@ -72,7 +72,10 @@ function readTable(grid: FrameLike): import('./model').Table {
     const row: string[] = [];
     for (const cell of (rowFrame as FrameLike).children) {
       const ct = getCellTag(cell);
-      if (ct) row[ct.c] = (cell as TextLike).characters;
+      if (ct) {
+        const tn = (cell as FrameLike).children[0] as TextLike | undefined;
+        row[ct.c] = tn ? tn.characters : '';
+      }
     }
     for (let c = 0; c < cols; c++) if (row[c] === undefined) row[c] = '';
     cells.push(row);

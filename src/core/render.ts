@@ -10,6 +10,15 @@ const HEADING_SIZE = { 1: 32, 2: 24, 3: 19 } as const;
 const BLUE: Paint[] = [{ type: 'SOLID', color: { r: 0.1, g: 0.4, b: 0.9 } }];
 const BLACK: Paint[] = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
 
+const PAGE_WIDTH = 720;
+const LINE: Paint[] = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
+const WHITE: Paint[] = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+const HEADER_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.96, g: 0.96, b: 0.96 } }];
+
+function fillWidth(n: FrameLike | TextLike): void {
+  n.layoutSizingHorizontal = 'FILL';
+}
+
 export async function renderDoc(doc: Doc, figma: FigmaLike): Promise<FrameLike> {
   await figma.loadFontAsync(REGULAR);
   await figma.loadFontAsync(BOLD);
@@ -21,8 +30,15 @@ export async function renderDoc(doc: Doc, figma: FigmaLike): Promise<FrameLike> 
   page.layoutMode = 'VERTICAL';
   page.itemSpacing = 12;
   page.paddingTop = page.paddingBottom = page.paddingLeft = page.paddingRight = 24;
+  page.counterAxisSizingMode = 'FIXED';
+  page.primaryAxisSizingMode = 'AUTO';
+  page.resize(PAGE_WIDTH, page.height);
   setBlockTag(page, 'page', { version: '1' });
-  for (const b of doc.blocks) page.appendChild(renderBlock(b, figma));
+  for (const b of doc.blocks) {
+    const node = renderBlock(b, figma);
+    page.appendChild(node);
+    fillWidth(node);
+  }
   return page;
 }
 
@@ -45,6 +61,7 @@ function textFromInlines(figma: FigmaLike, inlines: Inline[]): TextLike {
   const runs = flattenInlines(inlines);
   t.fontName = REGULAR;
   t.characters = runs.map(r => r.text).join('');
+  t.textAutoResize = 'HEIGHT';
   applyRuns(t, runs);
   return t;
 }
@@ -64,11 +81,14 @@ function renderBlock(b: Block, figma: FigmaLike): FrameLike | TextLike {
     }
     case 'divider': {
       const f = figma.createFrame(); f.name = 'divider';
+      f.fills = LINE;
+      f.resize(100, 1);
       setBlockTag(f, 'divider', {});
       return f;
     }
     case 'code': {
       const t = figma.createText(); t.fontName = MONO; t.characters = b.value; t.fontSize = 13;
+      t.textAutoResize = 'HEIGHT';
       setBlockTag(t, 'code', { lang: b.lang });
       return t;
     }
@@ -79,8 +99,13 @@ function renderBlock(b: Block, figma: FigmaLike): FrameLike | TextLike {
     }
     case 'quote': {
       const f = figma.createFrame(); f.layoutMode = 'VERTICAL'; f.itemSpacing = 4;
+      f.primaryAxisSizingMode = 'AUTO'; f.fills = []; f.paddingLeft = 12;
       setBlockTag(f, 'quote', {});
-      b.children.forEach(c => f.appendChild(renderBlock(c, figma)));
+      b.children.forEach(c => {
+        const cn = renderBlock(c, figma);
+        f.appendChild(cn);
+        fillWidth(cn);
+      });
       return f;
     }
     case 'list': return renderList(b, figma);
@@ -90,25 +115,39 @@ function renderBlock(b: Block, figma: FigmaLike): FrameLike | TextLike {
 
 function renderTable(b: import('./model').Table, figma: FigmaLike): FrameLike {
   const grid = figma.createFrame(); grid.layoutMode = 'VERTICAL'; grid.itemSpacing = 1;
+  grid.primaryAxisSizingMode = 'AUTO'; grid.fills = LINE;
   const allRows = [b.header, ...b.rows];
   setBlockTag(grid, 'table', { rows: allRows.length, cols: b.header.length });
   allRows.forEach((row, r) => {
     const rowFrame = figma.createFrame(); rowFrame.layoutMode = 'HORIZONTAL'; rowFrame.itemSpacing = 1;
+    rowFrame.counterAxisSizingMode = 'AUTO'; rowFrame.fills = LINE;
     rowFrame.name = `row ${r}`;
     row.forEach((cell, c) => {
+      const cellFrame = figma.createFrame();
+      cellFrame.layoutMode = 'VERTICAL';
+      cellFrame.primaryAxisSizingMode = 'AUTO';
+      cellFrame.paddingTop = cellFrame.paddingBottom = 6;
+      cellFrame.paddingLeft = cellFrame.paddingRight = 10;
+      cellFrame.fills = r === 0 ? HEADER_BG : WHITE;
       const t = figma.createText();
       t.fontName = r === 0 ? { family: 'Inter', style: 'Bold' } : REGULAR;
       t.characters = cell;
-      setCellTag(t, r, c);
-      rowFrame.appendChild(t);
+      t.textAutoResize = 'HEIGHT';
+      cellFrame.appendChild(t);
+      fillWidth(t);
+      setCellTag(cellFrame, r, c);
+      rowFrame.appendChild(cellFrame);
+      fillWidth(cellFrame);
     });
     grid.appendChild(rowFrame);
+    fillWidth(rowFrame);
   });
   return grid;
 }
 
 function renderList(list: List, figma: FigmaLike): FrameLike {
   const f = figma.createFrame(); f.layoutMode = 'VERTICAL'; f.itemSpacing = 4;
+  f.primaryAxisSizingMode = 'AUTO'; f.fills = [];
   setBlockTag(f, 'list', { ordered: list.ordered });
   list.items.forEach((it, idx) => {
     const t = figma.createText();
@@ -118,10 +157,16 @@ function renderList(list: List, figma: FigmaLike): FrameLike {
     const contentRuns = flattenInlines(it.inlines);
     t.fontName = REGULAR;
     t.characters = prefix + contentRuns.map(r => r.text).join('');
+    t.textAutoResize = 'HEIGHT';
     applyRuns(t, contentRuns, prefix.length);
     setBlockTag(t, 'list-item', { ordered: list.ordered, index: idx, checked: it.checked });
     f.appendChild(t);
-    it.children.forEach(child => f.appendChild(renderList(child, figma)));
+    fillWidth(t);
+    it.children.forEach(child => {
+      const sub = renderList(child, figma);
+      f.appendChild(sub);
+      fillWidth(sub);
+    });
   });
   return f;
 }

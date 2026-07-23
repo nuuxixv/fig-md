@@ -25,8 +25,12 @@ class FakeText extends Base implements TextLike {
   characters = '';
   fontSize = 16;
   fonts: FontName[] = [];
-  fills: Paint[][] = [];
+  rangeFills: Paint[][] = [];
+  fills: Paint[] = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
   links: ({ type: 'URL'; value: string } | null)[] = [];
+  textAutoResize: 'NONE' | 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' = 'WIDTH_AND_HEIGHT';
+  layoutSizingHorizontal: 'FIXED' | 'HUG' | 'FILL' = 'FIXED';
+  layoutSizingVertical: 'FIXED' | 'HUG' | 'FILL' = 'FIXED';
 
   private loadedFonts: Set<string>;
   private _fontName: FontName = { family: 'Inter', style: 'Regular' };
@@ -49,8 +53,8 @@ class FakeText extends Base implements TextLike {
 
   private ensure(n: number) {
     while (this.fonts.length < n) this.fonts.push(this._fontName);
-    while (this.fills.length < n)
-      this.fills.push([{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }]);
+    while (this.rangeFills.length < n)
+      this.rangeFills.push([{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }]);
     while (this.links.length < n) this.links.push(null);
   }
 
@@ -64,7 +68,7 @@ class FakeText extends Base implements TextLike {
 
   setRangeFills(s: number, e: number, f: Paint[]) {
     this.ensure(e);
-    for (let i = s; i < e; i++) this.fills[i] = f;
+    for (let i = s; i < e; i++) this.rangeFills[i] = f;
   }
 
   setRangeTextDecoration() {}
@@ -87,9 +91,9 @@ class FakeText extends Base implements TextLike {
 
   getRangeFills(s: number, e: number): Paint[] | symbol {
     this.ensure(Math.max(e, s + 1));
-    const first = this.fills[s];
+    const first = this.rangeFills[s];
     for (let i = s; i < e; i++) {
-      if (!this.fillsEqual(this.fills[i], first)) {
+      if (!this.fillsEqual(this.rangeFills[i], first)) {
         return MIXED;
       }
     }
@@ -131,9 +135,23 @@ class FakeFrame extends Base implements FrameLike {
   paddingLeft = 0;
   paddingRight = 0;
   children: SceneLike[] = [];
+  width = 100;
+  height = 100;
+  primaryAxisSizingMode: 'FIXED' | 'AUTO' = 'AUTO';
+  counterAxisSizingMode: 'FIXED' | 'AUTO' = 'AUTO';
+  layoutSizingHorizontal: 'FIXED' | 'HUG' | 'FILL' = 'FIXED';
+  layoutSizingVertical: 'FIXED' | 'HUG' | 'FILL' = 'FIXED';
+  fills: Paint[] = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  strokes: Paint[] = [];
+  strokeWeight = 1;
 
   appendChild(n: SceneLike) {
     this.children.push(n);
+  }
+
+  resize(width: number, height: number) {
+    this.width = width;
+    this.height = height;
   }
 }
 

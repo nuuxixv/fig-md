@@ -21,6 +21,10 @@ export interface TextLike extends BaseLike {
   characters: string;
   fontName: FontName;
   fontSize: number;
+  textAutoResize: 'NONE' | 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE';
+  fills: Paint[];
+  layoutSizingHorizontal: 'FIXED' | 'HUG' | 'FILL';
+  layoutSizingVertical: 'FIXED' | 'HUG' | 'FILL';
   setRangeFontName(start: number, end: number, font: FontName): void;
   setRangeFills(start: number, end: number, fills: Paint[]): void;
   setRangeTextDecoration(start: number, end: number, deco: 'NONE' | 'UNDERLINE'): void;
@@ -40,6 +44,16 @@ export interface FrameLike extends BaseLike {
   paddingRight: number;
   children: SceneLike[];
   appendChild(n: SceneLike): void;
+  width: number;
+  height: number;
+  resize(width: number, height: number): void;
+  primaryAxisSizingMode: 'FIXED' | 'AUTO';
+  counterAxisSizingMode: 'FIXED' | 'AUTO';
+  layoutSizingHorizontal: 'FIXED' | 'HUG' | 'FILL';
+  layoutSizingVertical: 'FIXED' | 'HUG' | 'FILL';
+  fills: Paint[];
+  strokes: Paint[];
+  strokeWeight: number;
 }
 
 export type SceneLike = FrameLike | TextLike;
