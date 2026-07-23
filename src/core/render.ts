@@ -102,6 +102,20 @@ function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, offset = 0): 
   }
 }
 
+// 균일 색 텍스트를 실제 Figma에서 확실히 칠한다.
+// 노드 레벨 fills + 범위 API(setRangeFontName→setRangeFills)를 함께 적용.
+// (범위에 setRangeFontName을 먼저 걸지 않으면 setRangeFills가 무시되고 기본색(검정)이 남는 실제 Figma 동작 대응.)
+// 호출 전에 t.characters가 설정돼 있어야 한다.
+function paintUniform(t: TextLike, font: FontName, color: RGB): void {
+  t.fontName = font;
+  t.fills = solid(color);
+  const n = t.characters.length;
+  if (n > 0) {
+    t.setRangeFontName(0, n, font);
+    t.setRangeFills(0, n, solid(color));
+  }
+}
+
 function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: RGB): TextLike {
   const t = figma.createText();
   const runs = flattenInlines(inlines);
@@ -138,9 +152,9 @@ function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: 
       f.layoutMode = 'VERTICAL'; f.primaryAxisSizingMode = 'AUTO';
       f.paddingTop = f.paddingBottom = 12; f.paddingLeft = f.paddingRight = 12;
       f.fills = solid(pal.codeBg);
-      const t = figma.createText(); t.fontName = MONO; t.characters = b.value; t.fontSize = 13;
+      const t = figma.createText(); t.characters = b.value; t.fontSize = 13;
       t.textAutoResize = 'HEIGHT';
-      t.fills = solid(text);
+      paintUniform(t, MONO, text);
       f.appendChild(t); fillWidth(t);
       setBlockTag(f, 'code', { lang: b.lang });
       return f;
@@ -187,10 +201,9 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
       cellFrame.paddingLeft = cellFrame.paddingRight = 10;
       cellFrame.fills = solid(r === 0 ? pal.headerBg : pal.cellBg);
       const t = figma.createText();
-      t.fontName = r === 0 ? { family: 'Inter', style: 'Bold' } : REGULAR;
       t.characters = cell;
       t.textAutoResize = 'HEIGHT';
-      t.fills = solid(text);
+      paintUniform(t, r === 0 ? { family: 'Inter', style: 'Bold' } : REGULAR, text);
       cellFrame.appendChild(t);
       fillWidth(t);
       setCellTag(cellFrame, r, c);
@@ -214,10 +227,14 @@ function renderList(list: List, figma: FigmaLike, pal: Palette, text: RGB, link:
     const box = it.checked === null ? '' : it.checked ? '[x] ' : '[ ] ';
     const prefix = `${marker} ${box}`;
     const contentRuns = flattenInlines(it.inlines);
-    t.fontName = REGULAR;
     t.characters = prefix + contentRuns.map(r => r.text).join('');
     t.textAutoResize = 'HEIGHT';
+    t.fontName = REGULAR;
     t.fills = solid(text);
+    if (prefix.length > 0) {
+      t.setRangeFontName(0, prefix.length, REGULAR);
+      t.setRangeFills(0, prefix.length, solid(text));
+    }
     applyRuns(t, contentRuns, text, link, prefix.length);
     setBlockTag(t, 'list-item', { ordered: list.ordered, index: idx, checked: it.checked });
     f.appendChild(t);
