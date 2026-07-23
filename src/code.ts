@@ -14,7 +14,7 @@ const adapter = {
   loadFontAsync: (f: { family: string; style: string }) => figma.loadFontAsync(f),
 };
 
-figma.ui.onmessage = async (msg: { type: string; md?: string; block?: 'divider' | 'table' }) => {
+figma.ui.onmessage = async (msg: { type: string; md?: string }) => {
   try {
     if (msg.type === 'render') {
       const doc = parseMarkdown(msg.md ?? '');
@@ -29,18 +29,6 @@ figma.ui.onmessage = async (msg: { type: string; md?: string; block?: 'divider' 
       if (!page) { figma.ui.postMessage({ type: 'error', message: '내보낼 Fig.md 페이지 프레임을 선택하세요.' }); return; }
       const { doc, warnings } = readDoc(page);
       figma.ui.postMessage({ type: 'exported', md: serializeDoc(doc), warnings });
-    } else if (msg.type === 'insert') {
-      const sel = figma.currentPage.selection[0];
-      const page = isPageFrame(sel) ? sel : findLatestPage();
-      if (!page || page.type !== 'FRAME') { figma.ui.postMessage({ type: 'error', message: 'Fig.md 페이지를 선택하세요.' }); return; }
-      const block = msg.block === 'table'
-        ? { type: 'table', header: ['열1', '열2'], rows: [['', '']] } as const
-        : { type: 'divider' } as const;
-      const doc = { blocks: [block] };
-      const tmp = await renderDoc(doc as any, adapter as any);
-      const child = (tmp as any).children[0] as SceneNode;
-      (page as FrameNode).appendChild(child);
-      tmp.remove();
     }
   } catch (e) {
     figma.ui.postMessage({ type: 'error', message: String(e) });

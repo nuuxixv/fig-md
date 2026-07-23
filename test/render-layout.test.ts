@@ -51,4 +51,23 @@ describe('render layout — real-Figma sizing/appearance', () => {
       }
     }
   });
+
+  it('every table cell stretches to fill the row height (no empty bands)', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    const page = await renderDoc(doc, new FakeFigma());
+    const grid = page.children[0] as FrameLike;
+    for (const rowFrame of grid.children as FrameLike[]) {
+      for (const cell of rowFrame.children as FrameLike[]) {
+        expect(cell.layoutSizingVertical).toBe('FILL');
+      }
+    }
+  });
+
+  it('code block renders as a frame with a visible background', async () => {
+    const doc = parseMarkdown('```js\nconst a = 1;\n```');
+    const page = await renderDoc(doc, new FakeFigma());
+    const code = page.children[0] as FrameLike;
+    expect(code.type).toBe('FRAME');
+    expect(code.fills.length).toBeGreaterThan(0);
+  });
 });

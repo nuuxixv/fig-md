@@ -14,6 +14,7 @@ const PAGE_WIDTH = 720;
 const LINE: Paint[] = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
 const WHITE: Paint[] = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 const HEADER_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.96, g: 0.96, b: 0.96 } }];
+const CODE_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
 
 function fillWidth(n: FrameLike | TextLike): void {
   n.layoutSizingHorizontal = 'FILL';
@@ -87,10 +88,15 @@ function renderBlock(b: Block, figma: FigmaLike): FrameLike | TextLike {
       return f;
     }
     case 'code': {
+      const f = figma.createFrame(); f.name = 'code';
+      f.layoutMode = 'VERTICAL'; f.primaryAxisSizingMode = 'AUTO';
+      f.paddingTop = f.paddingBottom = 12; f.paddingLeft = f.paddingRight = 12;
+      f.fills = CODE_BG;
       const t = figma.createText(); t.fontName = MONO; t.characters = b.value; t.fontSize = 13;
       t.textAutoResize = 'HEIGHT';
-      setBlockTag(t, 'code', { lang: b.lang });
-      return t;
+      f.appendChild(t); fillWidth(t);
+      setBlockTag(f, 'code', { lang: b.lang });
+      return f;
     }
     case 'image': {
       const f = figma.createFrame(); f.name = `image: ${b.alt || b.src}`;
@@ -138,6 +144,7 @@ function renderTable(b: import('./model').Table, figma: FigmaLike): FrameLike {
       setCellTag(cellFrame, r, c);
       rowFrame.appendChild(cellFrame);
       fillWidth(cellFrame);
+      cellFrame.layoutSizingVertical = 'FILL';
     });
     grid.appendChild(rowFrame);
     fillWidth(rowFrame);

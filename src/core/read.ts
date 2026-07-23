@@ -52,7 +52,10 @@ function readBlock(node: SceneLike, warnings: string[]): Block | null {
     case 'heading': return { type: 'heading', level: tag.meta.level, inlines: parseInlines(t.characters) };
     case 'paragraph': return { type: 'paragraph', inlines: readInlines(t, 0, t.characters.length) };
     case 'divider': return { type: 'divider' };
-    case 'code': return { type: 'code', lang: tag.meta.lang ?? '', value: t.characters };
+    case 'code': {
+      const inner = (node as FrameLike).children[0] as TextLike | undefined;
+      return { type: 'code', lang: tag.meta.lang ?? '', value: inner ? inner.characters : '' };
+    }
     case 'image': return { type: 'image', src: tag.meta.src ?? '', alt: tag.meta.alt ?? '' };
     case 'quote': {
       const children = f.children.map(c => readBlock(c, warnings)).filter((x): x is Block => !!x);
