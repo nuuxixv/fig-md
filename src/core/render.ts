@@ -94,12 +94,13 @@ export async function renderDoc(
   return page;
 }
 
-function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, offset = 0): void {
+function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, offset = 0, boldBase = false): void {
   let pos = offset;
   for (const r of runs) {
     const start = pos, end = pos + r.text.length;
     if (end > start) {
-      const style = r.bold ? (r.italic ? 'Bold Italic' : 'Bold') : (r.italic ? 'Italic' : 'Regular');
+      const bold = r.bold || boldBase;
+      const style = bold ? (r.italic ? 'Bold Italic' : 'Bold') : (r.italic ? 'Italic' : 'Regular');
       t.setRangeFontName(start, end, r.code ? { family: 'Roboto Mono', style: 'Regular' } : { family: 'Inter', style });
       t.setRangeFills(start, end, solid(r.href ? link : text));
       t.setRangeHyperlink(start, end, r.href ? { type: 'URL', value: r.href } : null);
@@ -122,22 +123,22 @@ function paintUniform(t: TextLike, font: FontName, color: RGB): void {
   }
 }
 
-function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: RGB): TextLike {
+function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: RGB, boldBase = false): TextLike {
   const t = figma.createText();
   const runs = flattenInlines(inlines);
-  t.fontName = REGULAR;
+  t.fontName = boldBase ? BOLD : REGULAR;
   t.characters = runs.map(r => r.text).join('');
   t.textAutoResize = 'HEIGHT';
   t.fills = solid(text);
-  applyRuns(t, runs, text, link);
+  applyRuns(t, runs, text, link, 0, boldBase);
   return t;
 }
 
 function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: RGB): FrameLike | TextLike {
   switch (b.type) {
     case 'heading': {
-      const t = textFromInlines(figma, b.inlines, text, link);
-      t.fontName = BOLD; t.fontSize = HEADING_SIZE[b.level];
+      const t = textFromInlines(figma, b.inlines, text, link, true);
+      t.fontSize = HEADING_SIZE[b.level];
       setBlockTag(t, 'heading', { level: b.level });
       return t;
     }

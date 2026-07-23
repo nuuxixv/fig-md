@@ -1,7 +1,7 @@
 import type { Doc, Block, Inline, List, ListItem, Run } from './model';
 import type { FrameLike, SceneLike, TextLike } from './figma-like';
 import { getBlockTag, getCellTag } from './tag';
-import { parseInlines, runsToInlines } from './inline';
+import { runsToInlines } from './inline';
 import { MIXED } from './figma-like';
 
 export function readDoc(page: FrameLike): { doc: Doc; warnings: string[] } {
@@ -14,7 +14,7 @@ export function readDoc(page: FrameLike): { doc: Doc; warnings: string[] } {
   return { doc: { blocks }, warnings };
 }
 
-function readInlines(t: TextLike, start: number, end: number): Inline[] {
+function readInlines(t: TextLike, start: number, end: number, baselineBold = false): Inline[] {
   if (end <= start) return [];
   const s = t.characters;
   const runs: Run[] = [];
@@ -41,6 +41,7 @@ function readInlines(t: TextLike, start: number, end: number): Inline[] {
       runStart = i; if (next) cur = next;
     }
   }
+  if (baselineBold) for (const r of runs) r.bold = false;
   return runsToInlines(runs);
 }
 
@@ -49,7 +50,7 @@ function readBlock(node: SceneLike, warnings: string[]): Block | null {
   if (!tag) { warnings.push(`꼬리표 없는 노드 무시: "${node.name || node.type}"`); return null; }
   const t = node as TextLike; const f = node as FrameLike;
   switch (tag.type) {
-    case 'heading': return { type: 'heading', level: tag.meta.level, inlines: parseInlines(t.characters) };
+    case 'heading': return { type: 'heading', level: tag.meta.level, inlines: readInlines(t, 0, t.characters.length, true) };
     case 'paragraph': return { type: 'paragraph', inlines: readInlines(t, 0, t.characters.length) };
     case 'divider': return { type: 'divider' };
     case 'code': {

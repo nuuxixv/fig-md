@@ -52,6 +52,21 @@ describe('render→read heading plain', () => {
   it('## has *italic* still works in paragraph, heading stays plain', () => nodeRoundtrip('# Heading\n\nbody with *italic*'));
 });
 
+describe('render→read heading inline styling (V2)', () => {
+  it('# A *B* C round-trips (italic inside heading preserved)', () => nodeRoundtrip('# A *B* C'));
+  it('# use `code` round-trips (code inside heading preserved)', () => nodeRoundtrip('# use `code`'));
+  it('# see [here](http://x) round-trips (link + url preserved)', () => nodeRoundtrip('# see [here](http://x)'));
+  it('# Plain heading round-trips', () => nodeRoundtrip('# Plain heading'));
+
+  it('# **A** B normalizes to # A B (bold is heading baseline, redundant marker dropped)', async () => {
+    const doc = parseMarkdown('# **A** B');
+    const page = await renderDoc(doc, new FakeFigma());
+    const { doc: back, warnings } = readDoc(page);
+    expect(warnings).toEqual([]);
+    expect(norm(serializeDoc(back))).toBe(norm('# A B'));
+  });
+});
+
 describe('render→read table', () => {
   it('2x2', () => nodeRoundtrip('| A | B |\n| --- | --- |\n| 1 | 2 |'));
 });
