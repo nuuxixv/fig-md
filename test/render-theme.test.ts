@@ -23,14 +23,16 @@ describe('renderDoc — theme-aware palette', () => {
     expect(color.b).toBe(1);
   });
 
-  it('dark theme: page fill is dark, text fill is light', async () => {
+  it('dark theme: page fill is dark, text fill is light (node-level fills)', async () => {
     const doc = parseMarkdown('# Title\n\nsome paragraph text');
     const page = await renderDoc(doc, new FakeFigma(), { theme: 'dark' });
     const pageColor = page.fills[0].color;
     expect(pageColor.r).toBeLessThan(0.2);
 
+    // real Figma only reliably reflects color via node-level `fills`, not
+    // setRangeFills without a prior setRangeFontName over that range.
     const paragraph = page.children[1] as TextLike;
-    const textColor = (paragraph.getRangeFills(0, paragraph.characters.length) as any)[0].color;
+    const textColor = paragraph.fills[0].color;
     expect(textColor.r).toBeGreaterThan(0.9);
   });
 
@@ -42,7 +44,35 @@ describe('renderDoc — theme-aware palette', () => {
     expect(pageColor).toEqual(override.bg);
 
     const paragraph = page.children[1] as TextLike;
-    const textColor = (paragraph.getRangeFills(0, paragraph.characters.length) as any)[0].color;
+    const textColor = paragraph.fills[0].color;
     expect(textColor).toEqual(override.fg);
+  });
+
+  it('dark theme: table cell text is light via node-level fills (real-Figma-safe)', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'dark' });
+    const grid = page.children[0] as FrameLike;
+    const row = grid.children[0] as FrameLike;
+    const cell = row.children[0] as FrameLike;
+    const cellText = cell.children[0] as TextLike;
+    expect(cellText.fills[0].color.r).toBeGreaterThan(0.9);
+  });
+
+  it('light theme: table cell text is dark via node-level fills', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'light' });
+    const grid = page.children[0] as FrameLike;
+    const row = grid.children[0] as FrameLike;
+    const cell = row.children[0] as FrameLike;
+    const cellText = cell.children[0] as TextLike;
+    expect(cellText.fills[0].color.r).toBeLessThan(0.1);
+  });
+
+  it('dark theme: quote child text is colored with the dark palette quoteText, not black', async () => {
+    const doc = parseMarkdown('> a note');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'dark' });
+    const quote = page.children[0] as FrameLike;
+    const quoteText = quote.children[0] as TextLike;
+    expect(quoteText.fills[0].color.r).toBeCloseTo(0.70, 2);
   });
 });

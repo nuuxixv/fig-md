@@ -108,6 +108,7 @@ function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: R
   t.fontName = REGULAR;
   t.characters = runs.map(r => r.text).join('');
   t.textAutoResize = 'HEIGHT';
+  t.fills = solid(text);
   applyRuns(t, runs, text, link);
   return t;
 }
@@ -139,7 +140,7 @@ function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: 
       f.fills = solid(pal.codeBg);
       const t = figma.createText(); t.fontName = MONO; t.characters = b.value; t.fontSize = 13;
       t.textAutoResize = 'HEIGHT';
-      t.setRangeFills(0, t.characters.length, solid(text));
+      t.fills = solid(text);
       f.appendChild(t); fillWidth(t);
       setBlockTag(f, 'code', { lang: b.lang });
       return f;
@@ -158,12 +159,9 @@ function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: 
       f.paddingTop = f.paddingBottom = 12; f.paddingLeft = 16; f.paddingRight = 12;
       setBlockTag(f, 'quote', {});
       b.children.forEach(c => {
-        const cn = renderBlock(c, figma, pal, text, link);
+        const cn = renderBlock(c, figma, pal, pal.quoteText, link);
         f.appendChild(cn);
         fillWidth(cn);
-        if (cn.type === 'TEXT' && cn.characters.length > 0) {
-          cn.setRangeFills(0, cn.characters.length, solid(pal.quoteText));
-        }
       });
       return f;
     }
@@ -192,7 +190,7 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
       t.fontName = r === 0 ? { family: 'Inter', style: 'Bold' } : REGULAR;
       t.characters = cell;
       t.textAutoResize = 'HEIGHT';
-      t.setRangeFills(0, t.characters.length, solid(text));
+      t.fills = solid(text);
       cellFrame.appendChild(t);
       fillWidth(t);
       setCellTag(cellFrame, r, c);
@@ -219,7 +217,7 @@ function renderList(list: List, figma: FigmaLike, pal: Palette, text: RGB, link:
     t.fontName = REGULAR;
     t.characters = prefix + contentRuns.map(r => r.text).join('');
     t.textAutoResize = 'HEIGHT';
-    t.setRangeFills(0, prefix.length, solid(text));
+    t.fills = solid(text);
     applyRuns(t, contentRuns, text, link, prefix.length);
     setBlockTag(t, 'list-item', { ordered: list.ordered, index: idx, checked: it.checked });
     f.appendChild(t);
