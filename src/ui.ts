@@ -115,7 +115,11 @@ function toast(m: string): void {
 onmessage = (e: MessageEvent) => {
   const m = e.data.pluginMessage;
   if (!m) return;
-  if (m.type === 'exported') {
+  if (m.type === 'theme') {
+    // 패널이 현재 Figma 페이지 배경 판정을 따르도록 data-theme을 적용한다
+    // (DESIGN.md 테마 모델). 메시지 도착 전에는 @media(prefers-color-scheme)가 대신 적용된다.
+    document.documentElement.setAttribute('data-theme', m.theme);
+  } else if (m.type === 'exported') {
     ta.value = m.md;
     ta.select();
     document.execCommand('copy');

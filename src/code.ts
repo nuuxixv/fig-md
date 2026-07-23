@@ -9,6 +9,13 @@ import type { FrameLike } from './core/figma-like';
 
 figma.showUI(__html__, { width: 400, height: 640 });
 
+// 패널 UI도 문서와 동일하게 "페이지 배경" 판정을 따른다 (DESIGN.md 테마 모델).
+// 열릴 때 1회 전달 + render 시점마다 재전달(그 사이 페이지/배경이 바뀌었을 수 있음).
+function currentTheme(): 'light' | 'dark' {
+  return themeFromBackground(pageBgColor());
+}
+figma.ui.postMessage({ type: 'theme', theme: currentTheme() });
+
 // figma 전역을 FigmaLike로 어댑트: 실제 API가 서브셋을 만족한다.
 const adapter = {
   createFrame: () => figma.createFrame() as unknown as FrameLike,
@@ -44,6 +51,7 @@ figma.ui.onmessage = async (msg: { type: string; md?: string; colors?: { bg?: st
     if (msg.type === 'render') {
       const doc = parseMarkdown(msg.md ?? '');
       const theme = themeFromBackground(pageBgColor());
+      figma.ui.postMessage({ type: 'theme', theme });
       const override = resolveOverride(msg.colors);
       const page = await renderDoc(doc, adapter as any, { theme, override });
       const node = page as unknown as FrameNode;
