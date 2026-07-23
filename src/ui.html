@@ -1,15 +1,229 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
-  body { font: 13px -apple-system, sans-serif; margin: 0; padding: 12px; }
-  textarea { width: 100%; height: 300px; box-sizing: border-box; font-family: monospace; }
-  button { margin: 6px 4px 0 0; padding: 8px 12px; cursor: pointer; }
-  #warn { color: #b30; white-space: pre-wrap; margin-top: 8px; }
+  /* iOS 26 "Liquid Glass" — DESIGN.md 토큰. 패널 UI 전용(렌더 문서와 별개). */
+  :root{
+    --label:#0C1220; --secondary:rgba(28,32,46,.62); --tertiary:rgba(28,32,46,.38);
+    --tint:#0A84FF; --tint-solid:#007AFF;
+    --glass:rgba(255,255,255,.52); --glass-2:rgba(255,255,255,.46); --glass-3:rgba(255,255,255,.38);
+    --gborder:rgba(255,255,255,.65); --ghi:rgba(255,255,255,.85); --gline:rgba(120,120,140,.22);
+    --pop:rgba(255,255,255,.72);
+    --shadow:0 20px 60px rgba(20,30,70,.22), 0 2px 8px rgba(20,30,70,.10);
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sf:"Pretendard","SF Pro Text",-apple-system,system-ui,"Segoe UI","Malgun Gothic",sans-serif;
+    --stage:#ECECEF;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --label:#F3F5FB; --secondary:rgba(232,235,245,.64); --tertiary:rgba(232,235,245,.36);
+      --tint:#0A84FF; --tint-solid:#0A84FF;
+      --glass:rgba(38,41,52,.50); --glass-2:rgba(255,255,255,.07); --glass-3:rgba(255,255,255,.05);
+      --gborder:rgba(255,255,255,.16); --ghi:rgba(255,255,255,.22); --gline:rgba(255,255,255,.10);
+      --pop:rgba(48,51,64,.78);
+      --shadow:0 24px 70px rgba(0,0,0,.6), 0 2px 10px rgba(0,0,0,.4);
+      --stage:#242428;
+    }
+  }
+  :root[data-theme="light"]{
+    --label:#0C1220; --secondary:rgba(28,32,46,.62); --tertiary:rgba(28,32,46,.38); --tint:#0A84FF; --tint-solid:#007AFF;
+    --glass:rgba(255,255,255,.52); --glass-2:rgba(255,255,255,.46); --glass-3:rgba(255,255,255,.38);
+    --gborder:rgba(255,255,255,.65); --ghi:rgba(255,255,255,.85); --gline:rgba(120,120,140,.22); --pop:rgba(255,255,255,.72);
+    --shadow:0 20px 60px rgba(20,30,70,.22), 0 2px 8px rgba(20,30,70,.10); --stage:#ECECEF;
+  }
+  :root[data-theme="dark"]{
+    --label:#F3F5FB; --secondary:rgba(232,235,245,.64); --tertiary:rgba(232,235,245,.36); --tint:#0A84FF; --tint-solid:#0A84FF;
+    --glass:rgba(38,41,52,.50); --glass-2:rgba(255,255,255,.07); --glass-3:rgba(255,255,255,.05);
+    --gborder:rgba(255,255,255,.16); --ghi:rgba(255,255,255,.22); --gline:rgba(255,255,255,.10); --pop:rgba(48,51,64,.78);
+    --shadow:0 24px 70px rgba(0,0,0,.6), 0 2px 10px rgba(0,0,0,.4); --stage:#242428;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; padding:0; height:100%}
+  body{font-family:var(--sf); color:var(--label); background:var(--stage);
+    min-height:100vh; display:flex; flex-direction:column; align-items:stretch;
+    padding:14px; -webkit-font-smoothing:antialiased}
+
+  .panel{width:100%; border-radius:22px; box-shadow:var(--shadow);
+    background:var(--glass); backdrop-filter:blur(30px) saturate(185%); -webkit-backdrop-filter:blur(30px) saturate(185%);
+    border:1px solid var(--gborder); display:flex; flex-direction:column; overflow:visible;
+    box-shadow:var(--shadow), inset 0 1px 0 var(--ghi)}
+  .p-head{display:flex; align-items:center; padding:17px 20px 11px}
+  .wordmark{font-size:22px; font-weight:700; letter-spacing:-.02em}
+  .wordmark span{color:var(--tint)}
+  .p-body{padding:6px 16px 18px; display:flex; flex-direction:column; gap:15px}
+
+  .label{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary)}
+  .lrow{display:flex; align-items:center; justify-content:space-between; margin:2px 6px 8px}
+
+  /* editor */
+  .editor{position:relative}
+  textarea{width:100%; min-height:198px; resize:vertical; color:var(--label); tab-size:2;
+    background:var(--glass-3); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border:1px solid var(--gline); border-radius:18px; padding:14px 15px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.7; box-shadow:inset 0 1px 0 var(--ghi)}
+  textarea:focus{outline:none; border-color:var(--tint); box-shadow:0 0 0 4px color-mix(in srgb,var(--tint) 20%,transparent)}
+
+  .plus{width:30px; height:30px; border-radius:11px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background:var(--glass-2); border:1px solid var(--gline); color:var(--secondary); padding:0;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); box-shadow:inset 0 1px 0 var(--ghi);
+    transition:background .15s,color .15s,border-color .15s,opacity .15s,transform .1s}
+  .plus svg{width:17px;height:17px;display:block}
+  .plus[disabled]{opacity:.35; cursor:not-allowed}
+  .plus:not([disabled]):active{transform:scale(.93)}
+  .plus:not([disabled]):hover{color:var(--tint); border-color:var(--tint)}
+  .plus.open{background:var(--tint-solid); color:#fff; border-color:transparent}
+  .plus-wrap{position:relative}
+
+  .pop{position:absolute; right:0; top:calc(100% + 9px); width:244px; z-index:30; display:none; flex-direction:column; gap:2px;
+    background:var(--pop); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid var(--gborder); border-radius:20px; padding:8px; box-shadow:var(--shadow), inset 0 1px 0 var(--ghi)}
+  .pop.show{display:flex; animation:pop .16s cubic-bezier(.2,.85,.3,1)}
+  @keyframes pop{from{opacity:0; transform:translateY(-8px) scale(.96)} to{opacity:1; transform:none}}
+  .pop-h{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--tertiary); padding:4px 9px 5px}
+  .pop-item{display:flex; align-items:center; gap:11px; padding:9px; border-radius:12px; cursor:pointer; background:transparent; border:0; text-align:left; width:100%; font-family:var(--sf); color:var(--label)}
+  .pop-item:hover{background:var(--glass-2)}
+  .ico{width:26px; height:26px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:var(--glass-2); border:1px solid var(--gline); color:var(--secondary); flex:none}
+  .ico svg{width:15px;height:15px;display:block}
+  .pop-item .nm{font-size:13px; font-weight:500}
+  .pop-item .sub{font-size:11px; color:var(--secondary)}
+  .pop-table{display:flex; align-items:center; gap:9px; padding:6px}
+  .pop-table .nm{font-size:13px; font-weight:500; flex:1}
+  .dim{width:60px; height:32px; text-align:center; color:var(--label); font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
+    background:var(--glass-3); border:1px solid var(--gline); border-radius:10px}
+  .dim:focus{outline:none; border-color:var(--tint)}
+  .go{height:32px; padding:0 14px; border-radius:11px; cursor:pointer; background:var(--tint-solid); border:0; color:#fff; font-family:var(--sf); font-size:12.5px; font-weight:600; box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+  .go:active{filter:brightness(.94)}
+  .pop-hint{font-size:11px; color:var(--tertiary); padding:3px 9px 4px}
+
+  /* glass actions */
+  .actions{display:flex; flex-direction:column; gap:11px}
+  .btn{display:flex; align-items:center; gap:13px; width:100%; text-align:left; padding:0 16px; height:54px; border-radius:18px;
+    cursor:pointer; font-family:var(--sf); border:1px solid transparent; transition:transform .1s, filter .15s;
+    box-shadow:0 6px 18px rgba(20,40,90,.18), inset 0 1px 0 rgba(255,255,255,.5)}
+  .btn:active{transform:scale(.985)}
+  .btn .arrow{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:11px}
+  .btn .arrow svg{width:18px; height:18px; display:block}
+  .btn .txt{display:flex; flex-direction:column; line-height:1.28}
+  .btn .t1{font-size:14px; font-weight:600; letter-spacing:-.01em}
+  .btn .t2{font-size:11.5px; opacity:.9; font-weight:400}
+  .btn-primary{color:#fff; border-color:rgba(255,255,255,.25);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--tint-solid) 88%, #fff) 0%, var(--tint-solid) 55%, color-mix(in srgb,var(--tint-solid) 90%, #000) 100%)}
+  .btn-primary:active{filter:brightness(.96)}
+  .btn-primary .arrow{background:rgba(255,255,255,.24)}
+  .btn-tinted{color:var(--tint); background:var(--glass-2); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-color:var(--gline)}
+  .btn-tinted .arrow{background:var(--tint-solid); color:#fff}
+  .btn[disabled]{opacity:.5; cursor:not-allowed; transform:none}
+
+  /* glass grouped settings */
+  .group{border-radius:18px; overflow:hidden; background:var(--glass-2); border:1px solid var(--gline);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:inset 0 1px 0 var(--ghi)}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; min-height:46px}
+  .row .rl{font-size:14px; color:var(--label)}
+
+  /* iOS-style toggle switch */
+  .toggle{width:46px; height:28px; border-radius:999px; border:1px solid var(--gline); padding:2px; cursor:pointer;
+    background:var(--glass-3); flex:none; display:flex; align-items:center; transition:background .18s ease, border-color .18s ease;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
+  .toggle .knob{width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.6);
+    transition:transform .18s cubic-bezier(.2,.85,.3,1); transform:translateX(0)}
+  .toggle[aria-checked="true"]{background:var(--tint-solid); border-color:transparent}
+  .toggle[aria-checked="true"] .knob{transform:translateX(18px)}
+
+  .colors{max-height:0; overflow:hidden; transition:max-height .22s ease}
+  .colors.open{max-height:230px; border-top:1px solid var(--gline)}
+  .colors-in{padding:13px 16px; display:flex; flex-direction:column; gap:12px}
+  .crow{display:flex; align-items:center; gap:11px}
+  .crow label{font-size:14px; color:var(--label)}
+  .swatch{width:28px; height:28px; border-radius:9px; border:1px solid var(--gline); padding:0; cursor:pointer; background:none}
+  input[type="color"]{-webkit-appearance:none; appearance:none}
+  input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+  input[type="color"]::-webkit-color-swatch{border:none; border-radius:7px}
+  .hexview{font-family:var(--mono); font-size:11.5px; color:var(--secondary); margin-left:auto; font-variant-numeric:tabular-nums}
+  .preview{border:1px solid var(--gline); border-radius:12px; padding:12px 14px; font-size:12.5px; line-height:1.5}
+  .preview .pv-h{font-weight:600; font-size:13.5px; margin-bottom:2px}
+  .preview .pv-m{opacity:.7}
+  .footnote{font-size:11.5px; color:var(--tertiary); padding:7px 8px 0; line-height:1.45}
+
+  :focus-visible{outline:2px solid var(--tint); outline-offset:2px}
+  .toast{position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(12px); z-index:40; font-family:var(--sf);
+    background:var(--pop); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%);
+    color:var(--label); font-size:12.5px; font-weight:600; padding:10px 16px; border-radius:999px; max-width:calc(100% - 32px);
+    text-align:center; white-space:pre-wrap;
+    border:1px solid var(--gborder); box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .18s, transform .18s}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){ .btn,.toast,.colors,.pop,.plus,.toggle,.toggle .knob{transition:none; animation:none} .btn:active,.plus:active{transform:none} }
 </style></head><body>
-  <textarea id="md" placeholder="여기에 마크다운을 붙여넣으세요"></textarea>
-  <div>
-    <button id="render">마크다운 → 렌더</button>
-    <button id="export">익스포트 → 마크다운</button>
-    <button id="ins-divider">+ 구분선</button>
-    <button id="ins-table">+ 표(2x2)</button>
+
+  <div class="panel" role="region" aria-label="Fig.md 플러그인 패널">
+    <div class="p-head"><span class="wordmark">Fig<span>.md</span></span></div>
+
+    <div class="p-body">
+      <div class="editor">
+        <div class="lrow">
+          <span class="label">마크다운</span>
+          <span class="plus-wrap">
+            <button class="plus" id="plus" type="button" disabled aria-haspopup="true" aria-expanded="false" title="블록 삽입 (편집 중 활성화)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div class="pop" id="pop" role="menu" aria-label="블록 삽입">
+              <div class="pop-h">삽입</div>
+              <button class="pop-item" id="ins-hr" type="button" role="menuitem">
+                <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="12" x2="20" y2="12"/></svg></span>
+                <span><span class="nm">구분선</span> <span class="sub">커서 위치에 <code>---</code></span></span>
+              </button>
+              <div class="pop-table">
+                <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="9.5" y1="9.5" x2="9.5" y2="19.5"/></svg></span>
+                <span class="nm">표</span>
+                <input class="dim" id="tbl-dim" value="3x2" aria-label="표 규격 행x열" />
+                <button class="go" id="ins-tbl" type="button">삽입</button>
+              </div>
+              <div class="pop-hint">표는 <b>행×열</b> · 첫 행은 헤더 (예: 3x2)</div>
+            </div>
+          </span>
+        </div>
+        <textarea id="md" spellcheck="false" aria-label="마크다운 입력"># 프로젝트 개요
+
+> 노트나 각주는 인용(&gt;)으로 쓰면 낮은 위계의 콜아웃으로 나옵니다.
+
+## 1. 배경
+현재 상황을 **한 줄**로 정리하고 [참고 링크](https://example.com)를 답니다.
+
+- 첫 번째 항목
+- 두 번째 항목
+  - 하위 항목
+</textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="do-render" type="button">
+          <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3.5"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><line x1="9.5" y1="12" x2="14.5" y2="12"/></svg></span>
+          <span class="txt"><span class="t1">프레임 만들기</span><span class="t2">마크다운 → Figma 프레임</span></span>
+        </button>
+        <button class="btn btn-tinted" id="do-export" type="button">
+          <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 L12 14.5"/><path d="M8 7 L12 3.5 L16 7"/><path d="M5.5 13 V18 a2.5 2.5 0 0 0 2.5 2.5 h8 a2.5 2.5 0 0 0 2.5 -2.5 V13"/></svg></span>
+          <span class="txt"><span class="t1">마크다운 추출</span><span class="t2">선택한 Figma 프레임 → 마크다운 (복사)</span></span>
+        </button>
+      </div>
+
+      <div>
+        <div class="label" style="margin:0 6px 8px">문서 스타일</div>
+        <div class="group">
+          <div class="row">
+            <span class="rl">색상 직접 지정</span>
+            <button class="toggle" id="color-toggle" type="button" role="switch" aria-checked="false" aria-controls="colors" title="색상 직접 지정">
+              <span class="knob"></span>
+            </button>
+          </div>
+          <div class="colors" id="colors">
+            <div class="colors-in">
+              <div class="crow"><input class="swatch" type="color" id="c-bg" value="#ffffff" aria-label="배경색" disabled /><label for="c-bg">배경</label><span class="hexview" id="hx-bg">#FFFFFF</span></div>
+              <div class="crow"><input class="swatch" type="color" id="c-fg" value="#000000" aria-label="글자색" disabled /><label for="c-fg">글자</label><span class="hexview" id="hx-fg">#000000</span></div>
+              <div class="preview" id="pv"><div class="pv-h">미리보기 제목</div><div class="pv-m">본문 텍스트가 이 색으로 렌더됩니다.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="footnote" id="footnote">문서는 현재 페이지 배경을 따릅니다. 색상 직접 지정을 켜면 아래 색으로 덮어씁니다.</div>
+      </div>
+    </div>
   </div>
-  <div id="warn"></div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 </body></html>

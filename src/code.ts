@@ -7,7 +7,7 @@ import { readDoc } from './core/read';
 import { getBlockTag } from './core/tag';
 import type { FrameLike } from './core/figma-like';
 
-figma.showUI(__html__, { width: 380, height: 560 });
+figma.showUI(__html__, { width: 400, height: 640 });
 
 // figma 전역을 FigmaLike로 어댑트: 실제 API가 서브셋을 만족한다.
 const adapter = {
