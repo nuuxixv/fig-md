@@ -5,5 +5,9 @@
   "main": "dist/code.js",
   "ui": "dist/ui.html",
   "editorType": ["figma"],
-  "documentAccess": "dynamic-page"
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "reasoning": "플러그인은 외부 네트워크 요청을 하지 않습니다. UI는 전부 인라인이며 마크다운의 이미지는 자리표시 프레임으로만 렌더합니다."
+  }
 }
