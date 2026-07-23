@@ -144,6 +144,7 @@ class FakeFrame extends Base implements FrameLike {
   fills: Paint[] = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
   strokes: Paint[] = [];
   strokeWeight = 1;
+  cornerRadius = 0;
 
   appendChild(n: SceneLike) {
     this.children.push(n);

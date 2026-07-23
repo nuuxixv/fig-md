@@ -15,6 +15,8 @@ const LINE: Paint[] = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
 const WHITE: Paint[] = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 const HEADER_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.96, g: 0.96, b: 0.96 } }];
 const CODE_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
+const QUOTE_BG: Paint[] = [{ type: 'SOLID', color: { r: 0.96, g: 0.96, b: 0.96 } }];
+const GRAY_TEXT: Paint[] = [{ type: 'SOLID', color: { r: 0.42, g: 0.42, b: 0.42 } }];
 
 function fillWidth(n: FrameLike | TextLike): void {
   n.layoutSizingHorizontal = 'FILL';
@@ -104,13 +106,20 @@ function renderBlock(b: Block, figma: FigmaLike): FrameLike | TextLike {
       return f;
     }
     case 'quote': {
-      const f = figma.createFrame(); f.layoutMode = 'VERTICAL'; f.itemSpacing = 4;
-      f.primaryAxisSizingMode = 'AUTO'; f.fills = []; f.paddingLeft = 12;
+      // 낮은 위계의 노트/콜아웃: 회색 배경 + 여백 + 둥근 모서리, 텍스트는 회색으로 톤다운
+      const f = figma.createFrame(); f.name = 'quote'; f.layoutMode = 'VERTICAL'; f.itemSpacing = 4;
+      f.primaryAxisSizingMode = 'AUTO';
+      f.fills = QUOTE_BG;
+      f.cornerRadius = 6;
+      f.paddingTop = f.paddingBottom = 12; f.paddingLeft = 16; f.paddingRight = 12;
       setBlockTag(f, 'quote', {});
       b.children.forEach(c => {
         const cn = renderBlock(c, figma);
         f.appendChild(cn);
         fillWidth(cn);
+        if (cn.type === 'TEXT' && cn.characters.length > 0) {
+          cn.setRangeFills(0, cn.characters.length, GRAY_TEXT);
+        }
       });
       return f;
     }

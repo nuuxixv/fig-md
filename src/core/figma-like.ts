@@ -54,6 +54,7 @@ export interface FrameLike extends BaseLike {
   fills: Paint[];
   strokes: Paint[];
   strokeWeight: number;
+  cornerRadius: number;
 }
 
 export type SceneLike = FrameLike | TextLike;

@@ -70,4 +70,14 @@ describe('render layout — real-Figma sizing/appearance', () => {
     expect(code.type).toBe('FRAME');
     expect(code.fills.length).toBeGreaterThan(0);
   });
+
+  it('quote renders as a de-emphasized callout (bg + rounded + padding)', async () => {
+    const doc = parseMarkdown('> a note');
+    const page = await renderDoc(doc, new FakeFigma());
+    const quote = page.children[0] as FrameLike;
+    expect(quote.type).toBe('FRAME');
+    expect(quote.fills.length).toBeGreaterThan(0);
+    expect(quote.cornerRadius).toBeGreaterThan(0);
+    expect(quote.paddingTop).toBeGreaterThan(0);
+  });
 });
