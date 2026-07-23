@@ -53,9 +53,6 @@ figma.ui.onmessage = async (msg: { type: string; md?: string; colors?: { bg?: st
       const theme = themeFromBackground(pageBgColor());
       figma.ui.postMessage({ type: 'theme', theme });
       const override = resolveOverride(msg.colors);
-      // [임시 진단] 실효 테마(오버라이드 배경이 있으면 그 색 기준)를 확인용 토스트. 원인 확정 후 제거.
-      const effTheme = override?.bg ? themeFromBackground(override.bg) : theme;
-      figma.notify('Fig.md 렌더: 테마=' + effTheme + (override ? ' · 색상 직접지정 ON' : ' · 페이지배경 따름'));
       const page = await renderDoc(doc, adapter as any, { theme, override });
       const node = page as unknown as FrameNode;
       figma.currentPage.appendChild(node);
