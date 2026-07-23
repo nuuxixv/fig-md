@@ -12,6 +12,7 @@ export interface Palette {
   link: RGB;
   line: RGB;
   codeBg: RGB;
+  codeText: RGB;
   quoteBg: RGB;
   quoteText: RGB;
   headerBg: RGB;
@@ -24,6 +25,7 @@ const LIGHT: Palette = {
   link: { r: 0, g: 0.478, b: 1 },
   line: { r: 0.82, g: 0.82, b: 0.86 },
   codeBg: { r: 0.949, g: 0.949, b: 0.969 },
+  codeText: { r: 0.78, g: 0.16, b: 0.33 },
   quoteBg: { r: 0.949, g: 0.949, b: 0.969 },
   quoteText: { r: 0.42, g: 0.42, b: 0.45 },
   headerBg: { r: 0.949, g: 0.949, b: 0.969 },
@@ -36,6 +38,7 @@ const DARK: Palette = {
   link: { r: 0.039, g: 0.518, b: 1 },
   line: { r: 0.219, g: 0.219, b: 0.227 },
   codeBg: { r: 0.172, g: 0.172, b: 0.180 },
+  codeText: { r: 0.96, g: 0.55, b: 0.66 },
   quoteBg: { r: 0.172, g: 0.172, b: 0.180 },
   quoteText: { r: 0.70, g: 0.70, b: 0.72 },
   headerBg: { r: 0.172, g: 0.172, b: 0.180 },
@@ -86,6 +89,7 @@ export async function renderDoc(
   const pal = effTheme === 'dark' ? DARK : LIGHT;
   const text = opts?.override?.fg ?? pal.text;
   const link = pal.link;
+  const codeText = pal.codeText;
   const pageBg = opts?.override?.bg ?? pal.pageBg;
 
   const page = figma.createFrame();
@@ -99,14 +103,14 @@ export async function renderDoc(
   page.fills = solid(pageBg);
   setBlockTag(page, 'page', { version: '1' });
   for (const b of doc.blocks) {
-    const node = renderBlock(b, figma, pal, text, link);
+    const node = renderBlock(b, figma, pal, text, link, codeText);
     page.appendChild(node);
     fillWidth(node);
   }
   return page;
 }
 
-function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, offset = 0, boldBase = false): void {
+function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, codeText: RGB, offset = 0, boldBase = false): void {
   let pos = offset;
   for (const r of runs) {
     const start = pos, end = pos + r.text.length;
@@ -114,7 +118,7 @@ function applyRuns(t: TextLike, runs: Run[], text: RGB, link: RGB, offset = 0, b
       const bold = r.bold || boldBase;
       const style = bold ? (r.italic ? 'Bold Italic' : 'Bold') : (r.italic ? 'Italic' : 'Regular');
       t.setRangeFontName(start, end, r.code ? { family: 'Roboto Mono', style: 'Regular' } : { family: 'Inter', style });
-      t.setRangeFills(start, end, solid(r.href ? link : text));
+      t.setRangeFills(start, end, solid(r.href ? link : (r.code ? codeText : text)));
       t.setRangeHyperlink(start, end, r.href ? { type: 'URL', value: r.href } : null);
     }
     pos = end;
@@ -135,27 +139,27 @@ function paintUniform(t: TextLike, font: FontName, color: RGB): void {
   }
 }
 
-function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: RGB, boldBase = false): TextLike {
+function textFromInlines(figma: FigmaLike, inlines: Inline[], text: RGB, link: RGB, codeText: RGB, boldBase = false): TextLike {
   const t = figma.createText();
   const runs = flattenInlines(inlines);
   t.fontName = boldBase ? BOLD : REGULAR;
   t.characters = runs.map(r => r.text).join('');
   t.textAutoResize = 'HEIGHT';
   t.fills = solid(text);
-  applyRuns(t, runs, text, link, 0, boldBase);
+  applyRuns(t, runs, text, link, codeText, 0, boldBase);
   return t;
 }
 
-function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: RGB): FrameLike | TextLike {
+function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: RGB, codeText: RGB): FrameLike | TextLike {
   switch (b.type) {
     case 'heading': {
-      const t = textFromInlines(figma, b.inlines, text, link, true);
+      const t = textFromInlines(figma, b.inlines, text, link, codeText, true);
       t.fontSize = HEADING_SIZE[b.level];
       setBlockTag(t, 'heading', { level: b.level });
       return t;
     }
     case 'paragraph': {
-      const t = textFromInlines(figma, b.inlines, text, link);
+      const t = textFromInlines(figma, b.inlines, text, link, codeText);
       setBlockTag(t, 'paragraph', {});
       return t;
     }
@@ -192,13 +196,13 @@ function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: 
       f.paddingTop = f.paddingBottom = 12; f.paddingLeft = 16; f.paddingRight = 12;
       setBlockTag(f, 'quote', {});
       b.children.forEach(c => {
-        const cn = renderBlock(c, figma, pal, pal.quoteText, link);
+        const cn = renderBlock(c, figma, pal, pal.quoteText, link, codeText);
         f.appendChild(cn);
         fillWidth(cn);
       });
       return f;
     }
-    case 'list': return renderList(b, figma, pal, text, link);
+    case 'list': return renderList(b, figma, pal, text, link, codeText);
     case 'table': return renderTable(b, figma, pal, text, link);
   }
 }
@@ -257,7 +261,9 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
   return grid;
 }
 
-function renderList(list: List, figma: FigmaLike, pal: Palette, text: RGB, link: RGB): FrameLike {
+const NEST_INDENT = 20;
+
+function renderList(list: List, figma: FigmaLike, pal: Palette, text: RGB, link: RGB, codeText: RGB): FrameLike {
   const f = figma.createFrame(); f.layoutMode = 'VERTICAL'; f.itemSpacing = 4;
   f.primaryAxisSizingMode = 'AUTO'; f.fills = [];
   setBlockTag(f, 'list', { ordered: list.ordered });
@@ -275,14 +281,15 @@ function renderList(list: List, figma: FigmaLike, pal: Palette, text: RGB, link:
       t.setRangeFontName(0, prefix.length, REGULAR);
       t.setRangeFills(0, prefix.length, solid(text));
     }
-    applyRuns(t, contentRuns, text, link, prefix.length);
+    applyRuns(t, contentRuns, text, link, codeText, prefix.length);
     setBlockTag(t, 'list-item', { ordered: list.ordered, index: idx, checked: it.checked });
     f.appendChild(t);
     fillWidth(t);
     it.children.forEach(child => {
-      const sub = renderList(child, figma, pal, text, link);
+      const sub = renderList(child, figma, pal, text, link, codeText);
       f.appendChild(sub);
       fillWidth(sub);
+      sub.paddingLeft = NEST_INDENT;
     });
   });
   return f;

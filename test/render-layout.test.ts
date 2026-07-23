@@ -3,6 +3,7 @@ import { parseMarkdown } from '../src/core/parse';
 import { renderDoc } from '../src/core/render';
 import { FakeFigma } from './fake-figma';
 import type { FrameLike, TextLike } from '../src/core/figma-like';
+import { MIXED } from '../src/core/figma-like';
 
 describe('render layout — real-Figma sizing/appearance', () => {
   it('page has a fixed 720 width and vertical auto-layout', async () => {
@@ -117,5 +118,37 @@ describe('render layout — real-Figma sizing/appearance', () => {
     expect(quote.fills.length).toBeGreaterThan(0);
     expect(quote.cornerRadius).toBeGreaterThan(0);
     expect(quote.paddingTop).toBeGreaterThan(0);
+  });
+
+  it('inline code gets a distinct code color, not just the mono font (Korean fallback has no mono glyphs)', async () => {
+    const doc = parseMarkdown('a `x` b');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'light' });
+    const p = page.children[0] as TextLike;
+    // characters: "a x b" -> code run "x" is at index 2
+    const codeFill = p.getRangeFills(2, 3);
+    expect(codeFill).not.toBe(MIXED);
+    const codeColor = (codeFill as any)[0].color;
+    expect(codeColor.r).toBeCloseTo(0.78, 1);
+    expect(codeColor.g).toBeCloseTo(0.16, 1);
+    expect(codeColor.b).toBeCloseTo(0.33, 1);
+
+    // surrounding plain text stays the regular text color (black in light theme)
+    const beforeFill = p.getRangeFills(0, 1);
+    expect(beforeFill).not.toBe(MIXED);
+    const beforeColor = (beforeFill as any)[0].color;
+    expect(beforeColor.r).toBeCloseTo(0, 1);
+    expect(beforeColor.g).toBeCloseTo(0, 1);
+    expect(beforeColor.b).toBeCloseTo(0, 1);
+  });
+
+  it('nested list items are indented relative to their parent list', async () => {
+    const doc = parseMarkdown('- a\n  - b');
+    const page = await renderDoc(doc, new FakeFigma());
+    const topList = page.children[0] as FrameLike;
+    expect(topList.paddingLeft).toBe(0);
+    // children: [item-text "a", nested-sub-list-frame]
+    const nested = topList.children[1] as FrameLike;
+    expect(nested.type).toBe('FRAME');
+    expect(nested.paddingLeft).toBe(20);
   });
 });
