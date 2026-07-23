@@ -73,5 +73,6 @@ manifest는 `dist/code.js`(메인) + `dist/ui.html`(UI)를 가리킨다. `dist/`
 
 ## 7. 참고
 - 소스: https://github.com/nuuxixv/fig-md
-- 라이선스: (미정 — 오픈소스로 공개하려면 LICENSE 추가 권장, 예: MIT)
+- 라이선스: **독점(All rights reserved)** — `LICENSE` 참고. 소스는 열람용 공개, 재사용 불가.
+  (Community 플러그인 사용은 무료. 오픈소스 아님 = MIT 아님.)
 - 아이덴티티/토큰: `DESIGN.md`
