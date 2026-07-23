@@ -35,6 +35,10 @@ export function parseInlines(s: string): Inline[] {
   const flush = () => { if (buf) { out.push({ type: 'text', value: buf }); buf = ''; } };
   while (i < s.length) {
     const c = s[i];
+    // 백슬래시 이스케이프: \\, \`, \*, \[ 는 다음 문자를 리터럴로 취급(마커로 해석하지 않음)
+    if (c === '\\' && i + 1 < s.length && '\\`*['.includes(s[i + 1])) {
+      buf += s[i + 1]; i += 2; continue;
+    }
     if (c === '`') {
       const end = s.indexOf('`', i + 1);
       if (end > i) { flush(); out.push({ type: 'code', value: s.slice(i + 1, end) }); i = end + 1; continue; }
@@ -67,7 +71,7 @@ export function parseInlines(s: string): Inline[] {
 export function serializeInlines(xs: Inline[]): string {
   return xs.map(x => {
     switch (x.type) {
-      case 'text': return x.value;
+      case 'text': return x.value.replace(/[\\`*[]/g, '\\$&');
       case 'code': return '`' + x.value + '`';
       case 'strong': return '**' + serializeInlines(x.children) + '**';
       case 'em': return '*' + serializeInlines(x.children) + '*';
