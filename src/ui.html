@@ -37,17 +37,17 @@
   *{box-sizing:border-box}
   html,body{margin:0; padding:0; height:100%}
   body{font-family:var(--sf); color:var(--label); background:var(--stage);
-    min-height:100vh; display:flex; flex-direction:column; align-items:stretch;
+    height:100%; display:flex; flex-direction:column; align-items:stretch;
     padding:14px; -webkit-font-smoothing:antialiased}
 
-  .panel{width:100%; border-radius:22px; box-shadow:var(--shadow);
+  .panel{width:100%; height:100%; max-height:100%; border-radius:22px; box-shadow:var(--shadow);
     background:var(--glass); backdrop-filter:blur(30px) saturate(185%); -webkit-backdrop-filter:blur(30px) saturate(185%);
-    border:1px solid var(--gborder); display:flex; flex-direction:column; overflow:visible;
+    border:1px solid var(--gborder); display:flex; flex-direction:column; overflow:hidden;
     box-shadow:var(--shadow), inset 0 1px 0 var(--ghi)}
-  .p-head{display:flex; align-items:center; padding:17px 20px 11px}
+  .p-head{display:flex; align-items:center; padding:17px 20px 11px; flex:none}
   .wordmark{font-size:22px; font-weight:700; letter-spacing:-.02em}
   .wordmark span{color:var(--tint)}
-  .p-body{padding:6px 16px 18px; display:flex; flex-direction:column; gap:15px}
+  .p-body{padding:6px 16px 18px; display:flex; flex-direction:column; gap:15px; overflow-y:auto; flex:1 1 auto; min-height:0}
 
   .label{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary)}
   .lrow{display:flex; align-items:center; justify-content:space-between; margin:2px 6px 8px}
@@ -117,29 +117,33 @@
   .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; min-height:46px}
   .row .rl{font-size:14px; color:var(--label)}
 
-  /* iOS-style toggle switch */
-  .toggle{width:46px; height:28px; border-radius:999px; border:1px solid var(--gline); padding:2px; cursor:pointer;
-    background:var(--glass-3); flex:none; display:flex; align-items:center; transition:background .18s ease, border-color .18s ease;
-    box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
-  .toggle .knob{width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.6);
-    transition:transform .18s cubic-bezier(.2,.85,.3,1); transform:translateX(0)}
-  .toggle[aria-checked="true"]{background:var(--tint-solid); border-color:transparent}
-  .toggle[aria-checked="true"] .knob{transform:translateX(18px)}
+  .disclose{background:none; border:0; padding:0; margin:0; width:100%; cursor:pointer; font-family:var(--sf)}
+  .chev{color:var(--tertiary); font-size:13px; transition:transform .18s; display:inline-block}
+  .disclose[aria-expanded="true"] .chev{transform:rotate(90deg)}
 
   .colors{max-height:0; overflow:hidden; transition:max-height .22s ease}
-  .colors.open{max-height:230px; border-top:1px solid var(--gline)}
+  .colors.open{max-height:720px; border-top:1px solid var(--gline)}
   .colors-in{padding:13px 16px; display:flex; flex-direction:column; gap:12px}
   .crow{display:flex; align-items:center; gap:11px}
   .crow label{font-size:14px; color:var(--label)}
-  .swatch{width:28px; height:28px; border-radius:9px; border:1px solid var(--gline); padding:0; cursor:pointer; background:none}
-  input[type="color"]{-webkit-appearance:none; appearance:none}
-  input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
-  input[type="color"]::-webkit-color-swatch{border:none; border-radius:7px}
+  .swatch{width:30px; height:30px; border-radius:9px; border:1px solid var(--gline); padding:0; cursor:pointer}
+  .swatch:hover{border-color:var(--tint)}
+  .swatch.active{border-color:var(--tint); box-shadow:0 0 0 2px var(--tint)}
   .hexview{font-family:var(--mono); font-size:11.5px; color:var(--secondary); margin-left:auto; font-variant-numeric:tabular-nums}
-  .preview{border:1px solid var(--gline); border-radius:12px; padding:12px 14px; font-size:12.5px; line-height:1.5}
-  .preview .pv-h{font-weight:600; font-size:13.5px; margin-bottom:2px}
-  .preview .pv-m{opacity:.7}
-  .footnote{font-size:11.5px; color:var(--tertiary); padding:7px 8px 0; line-height:1.45}
+  .preview{border:1px solid var(--gline); border-radius:12px; padding:14px 16px}
+  .preview .pv-h{font-weight:700; font-size:22px; letter-spacing:-.01em}
+  /* 커스텀 컬러 픽커 (인라인) */
+  .picker{display:none; margin-top:2px; padding:12px; border-radius:12px; background:var(--glass-3); border:1px solid var(--gline)}
+  .picker.open{display:block}
+  .sv{position:relative; width:100%; height:118px; border-radius:10px; cursor:crosshair; touch-action:none}
+  .sv-thumb,.hue-thumb{position:absolute; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.35); transform:translate(-50%,-50%); pointer-events:none}
+  .hue{position:relative; height:12px; border-radius:6px; margin-top:11px; cursor:pointer; touch-action:none; background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+  .hue-thumb{top:50%}
+  .pk-hex{width:100%; height:30px; margin-top:11px; padding:0 10px; border-radius:8px; border:1px solid var(--gline); background:var(--glass-3); color:var(--label); font-family:var(--mono); font-size:12px; text-transform:uppercase; box-sizing:border-box}
+  .pk-hex:focus{outline:none; border-color:var(--tint)}
+  .presets{display:flex; gap:7px; margin-top:10px}
+  .preset{width:22px; height:22px; border-radius:6px; cursor:pointer; border:1px solid var(--gline); padding:0}
+  .preset:hover{transform:scale(1.12)}
 
   :focus-visible{outline:2px solid var(--tint); outline-offset:2px}
   .toast{position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(12px); z-index:40; font-family:var(--sf);
@@ -148,7 +152,7 @@
     text-align:center; white-space:pre-wrap;
     border:1px solid var(--gborder); box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .18s, transform .18s}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
-  @media (prefers-reduced-motion:reduce){ .btn,.toast,.colors,.pop,.plus,.toggle,.toggle .knob{transition:none; animation:none} .btn:active,.plus:active{transform:none} }
+  @media (prefers-reduced-motion:reduce){ .btn,.toast,.colors,.pop,.plus,.chev{transition:none; animation:none} .btn:active,.plus:active{transform:none} }
 </style></head><body>
 
   <div class="panel" role="region" aria-label="Fig.md 플러그인 패널">
@@ -203,23 +207,25 @@
       </div>
 
       <div>
-        <div class="label" style="margin:0 6px 8px">문서 스타일</div>
+        <div class="label" style="margin:0 6px 8px">테마</div>
         <div class="group">
-          <div class="row">
-            <span class="rl">색상 직접 지정</span>
-            <button class="toggle" id="color-toggle" type="button" role="switch" aria-checked="false" aria-controls="colors" title="색상 직접 지정">
-              <span class="knob"></span>
-            </button>
-          </div>
+          <button class="disclose" id="disc" type="button" aria-expanded="false" aria-controls="colors">
+            <span class="row"><span class="rl">테마 변경</span><span class="chev">▶</span></span>
+          </button>
           <div class="colors" id="colors">
             <div class="colors-in">
-              <div class="crow"><input class="swatch" type="color" id="c-bg" value="#ffffff" aria-label="배경색" disabled /><label for="c-bg">배경</label><span class="hexview" id="hx-bg">#FFFFFF</span></div>
-              <div class="crow"><input class="swatch" type="color" id="c-fg" value="#000000" aria-label="글자색" disabled /><label for="c-fg">글자</label><span class="hexview" id="hx-fg">#000000</span></div>
-              <div class="preview" id="pv"><div class="pv-h">미리보기 제목</div><div class="pv-m">본문 텍스트가 이 색으로 렌더됩니다.</div></div>
+              <div class="crow"><button class="swatch" id="sw-bg" type="button" aria-label="배경 색"></button><label>배경 색</label><span class="hexview" id="hx-bg">#FFFFFF</span></div>
+              <div class="crow"><button class="swatch" id="sw-fg" type="button" aria-label="글자 색"></button><label>글자 색</label><span class="hexview" id="hx-fg">#000000</span></div>
+              <div class="picker" id="picker" role="dialog" aria-label="색 선택">
+                <div class="sv" id="sv"><div class="sv-thumb" id="svThumb"></div></div>
+                <div class="hue" id="hue"><div class="hue-thumb" id="hueThumb"></div></div>
+                <input class="pk-hex" id="pkHex" maxlength="7" spellcheck="false" aria-label="HEX 직접 입력" placeholder="#000000" />
+                <div class="presets" id="presets"></div>
+              </div>
+              <div class="preview" id="pv"><div class="pv-h">미리보기</div></div>
             </div>
           </div>
         </div>
-        <div class="footnote" id="footnote">문서는 현재 페이지 배경을 따릅니다. 색상 직접 지정을 켜면 아래 색으로 덮어씁니다.</div>
       </div>
     </div>
   </div>
