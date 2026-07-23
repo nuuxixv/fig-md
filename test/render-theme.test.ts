@@ -75,4 +75,27 @@ describe('renderDoc — theme-aware palette', () => {
     const quoteText = quote.children[0] as TextLike;
     expect(quoteText.fills[0].color.r).toBeCloseTo(0.70, 2);
   });
+
+  it('override bg=white drives the WHOLE palette light even under dark page theme (table bg + text)', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'dark', override: { bg: { r: 1, g: 1, b: 1 } } });
+    expect(page.fills[0].color.r).toBeGreaterThan(0.9);
+    const grid = page.children[0] as FrameLike;
+    const row = grid.children[0] as FrameLike;
+    const cell = row.children[0] as FrameLike;
+    expect(cell.fills[0].color.r).toBeGreaterThan(0.9); // header cell bg = LIGHT palette
+    const cellText = cell.children[0] as TextLike;
+    expect(cellText.fills[0].color.r).toBeLessThan(0.1); // text = LIGHT palette black
+  });
+
+  it('override bg=dark drives the WHOLE palette dark even under light page theme', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    const page = await renderDoc(doc, new FakeFigma(), { theme: 'light', override: { bg: { r: 0.05, g: 0.05, b: 0.05 } } });
+    const grid = page.children[0] as FrameLike;
+    const row = grid.children[0] as FrameLike;
+    const cell = row.children[0] as FrameLike;
+    expect(cell.fills[0].color.r).toBeLessThan(0.25); // dark header bg
+    const cellText = cell.children[0] as TextLike;
+    expect(cellText.fills[0].color.r).toBeGreaterThan(0.9); // light text
+  });
 });

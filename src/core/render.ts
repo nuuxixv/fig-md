@@ -2,6 +2,7 @@ import type { Doc, Block, Inline, List, Run } from './model';
 import type { FigmaLike, FrameLike, TextLike, FontName, Paint } from './figma-like';
 import { setBlockTag, setCellTag } from './tag';
 import { flattenInlines } from './inline';
+import { themeFromBackground } from './theme';
 
 export type RGB = { r: number; g: number; b: number };
 
@@ -65,7 +66,12 @@ export async function renderDoc(
   await figma.loadFontAsync({ family: 'Inter', style: 'Italic' });
   await figma.loadFontAsync({ family: 'Inter', style: 'Bold Italic' });
 
-  const pal = opts?.theme === 'dark' ? DARK : LIGHT;
+  // 색상 직접 지정(override) 배경이 있으면 그 밝기로 전체 팔레트를 정한다.
+  // (그래야 표·인용·코드 배경까지 오버라이드한 색과 같은 명암으로 일관되게 나온다.
+  //  없으면 페이지 배경으로 판정한 opts.theme를 따른다.)
+  const pageTheme = opts?.theme === 'dark' ? 'dark' : 'light';
+  const effTheme = opts?.override?.bg ? themeFromBackground(opts.override.bg) : pageTheme;
+  const pal = effTheme === 'dark' ? DARK : LIGHT;
   const text = opts?.override?.fg ?? pal.text;
   const link = pal.link;
   const pageBg = opts?.override?.bg ?? pal.pageBg;
