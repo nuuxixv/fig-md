@@ -1,6 +1,8 @@
 import { parseMarkdown } from './core/parse';
 import { serializeDoc } from './core/serialize';
 import { renderDoc } from './core/render';
+import type { RGB } from './core/render';
+import { themeFromBackground } from './core/theme';
 import { readDoc } from './core/read';
 import { getBlockTag } from './core/tag';
 import type { FrameLike } from './core/figma-like';
@@ -14,11 +16,36 @@ const adapter = {
   loadFontAsync: (f: { family: string; style: string }) => figma.loadFontAsync(f),
 };
 
-figma.ui.onmessage = async (msg: { type: string; md?: string }) => {
+// 현재 Figma 페이지의 배경 단색을 읽는다. 페이지 배경 밝기로 라이트/다크를 판정한다
+// (DESIGN.md "테마 모델" — 시스템/Figma UI 테마가 아니라 작업 중인 페이지 배경 기준).
+function pageBgColor(): RGB | null {
+  const b = figma.currentPage.backgrounds.find(p => p.type === 'SOLID') as SolidPaint | undefined;
+  return b ? { r: b.color.r, g: b.color.g, b: b.color.b } : null;
+}
+
+function hexToRgb(hex: string): RGB {
+  const clean = hex.replace('#', '');
+  const n = parseInt(clean.length === 3
+    ? clean.split('').map(c => c + c).join('')
+    : clean, 16);
+  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
+}
+
+function resolveOverride(colors?: { bg?: string; fg?: string }): { bg?: RGB; fg?: RGB } | undefined {
+  if (!colors) return undefined;
+  const bg = colors.bg ? hexToRgb(colors.bg) : undefined;
+  const fg = colors.fg ? hexToRgb(colors.fg) : undefined;
+  if (!bg && !fg) return undefined;
+  return { bg, fg };
+}
+
+figma.ui.onmessage = async (msg: { type: string; md?: string; colors?: { bg?: string; fg?: string } }) => {
   try {
     if (msg.type === 'render') {
       const doc = parseMarkdown(msg.md ?? '');
-      const page = await renderDoc(doc, adapter as any);
+      const theme = themeFromBackground(pageBgColor());
+      const override = resolveOverride(msg.colors);
+      const page = await renderDoc(doc, adapter as any, { theme, override });
       const node = page as unknown as FrameNode;
       figma.currentPage.appendChild(node);
       figma.viewport.scrollAndZoomIntoView([node]);
