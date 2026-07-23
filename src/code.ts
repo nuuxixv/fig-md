@@ -56,6 +56,19 @@ figma.ui.onmessage = async (msg: { type: string; md?: string; colors?: { bg?: st
       const page = await renderDoc(doc, adapter as any, { theme, override });
       const node = page as unknown as FrameNode;
       figma.currentPage.appendChild(node);
+
+      // V2: 새 프레임을 현재 뷰포트에 배치 + 여러 개는 오른쪽으로 타일링(겹침 방지).
+      const GAP = 48;
+      const others = figma.currentPage.children.filter(n => n !== node && isPageFrame(n));
+      if (others.length > 0) {
+        node.x = Math.round(Math.max(...others.map(p => p.x + p.width)) + GAP);
+        node.y = Math.round(Math.min(...others.map(p => p.y)));
+      } else {
+        const b = figma.viewport.bounds;
+        node.x = Math.round(b.x + 40);
+        node.y = Math.round(b.y + 40);
+      }
+
       figma.viewport.scrollAndZoomIntoView([node]);
       figma.currentPage.selection = [node];
     } else if (msg.type === 'export') {
