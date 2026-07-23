@@ -55,6 +55,18 @@ function fillWidth(n: FrameLike | TextLike): void {
   n.layoutSizingHorizontal = 'FILL';
 }
 
+// 문자수 기반 폭 추정 — CJK/한글 등 넓은 글리프는 가중치를 더 준다.
+// 픽셀 단위 실측(폰트 메트릭) 대신 문자수 기반으로 계산해 테스트 가능하고 안정적으로 만든다.
+function charWidth(s: string): number {
+  let w = 0;
+  for (const ch of s) w += ch.charCodeAt(0) > 0x1100 ? 13 : 7; // CJK/wide ~13px, latin ~7px
+  return w;
+}
+
+const COL_PAD = 24;
+const COL_MIN = 52;
+const COL_MAX = 360;
+
 export async function renderDoc(
   doc: Doc,
   figma: FigmaLike,
@@ -195,11 +207,14 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
   const grid = figma.createFrame(); grid.layoutMode = 'VERTICAL'; grid.itemSpacing = 1;
   grid.primaryAxisSizingMode = 'AUTO'; grid.fills = solid(pal.line);
   const allRows = [b.header, ...b.rows];
-  setBlockTag(grid, 'table', { rows: allRows.length, cols: b.header.length });
+  const cols = b.header.length;
+  setBlockTag(grid, 'table', { rows: allRows.length, cols });
+  const cellFrames: FrameLike[][] = [];
   allRows.forEach((row, r) => {
     const rowFrame = figma.createFrame(); rowFrame.layoutMode = 'HORIZONTAL'; rowFrame.itemSpacing = 1;
     rowFrame.counterAxisSizingMode = 'AUTO'; rowFrame.fills = solid(pal.line);
     rowFrame.name = `row ${r}`;
+    const rowCellFrames: FrameLike[] = [];
     row.forEach((cell, c) => {
       const cellFrame = figma.createFrame();
       cellFrame.layoutMode = 'VERTICAL';
@@ -215,12 +230,30 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
       fillWidth(t);
       setCellTag(cellFrame, r, c);
       rowFrame.appendChild(cellFrame);
-      fillWidth(cellFrame);
       cellFrame.layoutSizingVertical = 'FILL';
+      rowCellFrames.push(cellFrame);
     });
+    cellFrames.push(rowCellFrames);
     grid.appendChild(rowFrame);
     fillWidth(rowFrame);
   });
+
+  // 열 폭: 마지막 열은 남은 공간을 채우고(FILL), 그 외 열은 내용(글자수) 기반 고정폭.
+  // 같은 열의 모든 셀에 동일한 폭을 적용해 행 간 정렬을 맞춘다.
+  for (let c = 0; c < cols; c++) {
+    if (c === cols - 1) {
+      for (const rowCellFrames of cellFrames) fillWidth(rowCellFrames[c]);
+      continue;
+    }
+    const maxChar = Math.max(...allRows.map(row => charWidth(row[c] ?? '')));
+    const wCol = Math.min(Math.max(COL_PAD + maxChar, COL_MIN), COL_MAX);
+    for (const rowCellFrames of cellFrames) {
+      const cellFrame = rowCellFrames[c];
+      cellFrame.layoutSizingHorizontal = 'FIXED';
+      cellFrame.resize(wCol, cellFrame.height);
+    }
+  }
+
   return grid;
 }
 

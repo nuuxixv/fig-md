@@ -39,17 +39,55 @@ describe('render layout — real-Figma sizing/appearance', () => {
     expect(color.r === 1 && color.g === 1 && color.b === 1).toBe(false);
   });
 
-  it('table rows and cells fill the available width', async () => {
+  it('table rows fill the available width; last column cell fills, others are fixed-width', async () => {
     const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
     const page = await renderDoc(doc, new FakeFigma());
     const grid = page.children[0] as FrameLike;
     expect(grid.children.length).toBeGreaterThan(0);
     for (const rowFrame of grid.children as FrameLike[]) {
       expect(rowFrame.layoutSizingHorizontal).toBe('FILL');
-      for (const cell of rowFrame.children as FrameLike[]) {
-        expect(cell.layoutSizingHorizontal).toBe('FILL');
+      const cells = rowFrame.children as FrameLike[];
+      const lastCell = cells[cells.length - 1];
+      expect(lastCell.layoutSizingHorizontal).toBe('FILL');
+      for (const cell of cells.slice(0, -1)) {
+        expect(cell.layoutSizingHorizontal).toBe('FIXED');
       }
     }
+  });
+
+  it('non-last table columns get a content-based fixed width, aligned across rows', async () => {
+    const doc = parseMarkdown(
+      '| ID | 설명 |\n| --- | --- |\n| 1 | 아주 긴 설명 텍스트 라벨입니다 |'
+    );
+    const page = await renderDoc(doc, new FakeFigma());
+    const grid = page.children[0] as FrameLike;
+    const rows = grid.children as FrameLike[];
+    const firstColWidths = rows.map(row => (row.children[0] as FrameLike).width);
+    // aligned across rows (same width for every row in that column)
+    expect(new Set(firstColWidths).size).toBe(1);
+    for (const w of firstColWidths) {
+      expect(w).toBeGreaterThan(0);
+      expect(w).toBeLessThanOrEqual(360);
+    }
+    // last column (description) fills, not fixed
+    for (const row of rows) {
+      const lastCell = row.children[row.children.length - 1] as FrameLike;
+      expect(lastCell.layoutSizingHorizontal).toBe('FILL');
+    }
+  });
+
+  it('a column with longer content gets a wider fixed width than a column with short content', async () => {
+    const doc = parseMarkdown(
+      '| ID | 설명 | 비고 |\n| --- | --- | --- |\n| 1 | 아주 긴 설명 텍스트 라벨입니다 | ok |'
+    );
+    const page = await renderDoc(doc, new FakeFigma());
+    const grid = page.children[0] as FrameLike;
+    const headerRow = grid.children[0] as FrameLike;
+    const idColWidth = (headerRow.children[0] as FrameLike).width;
+    const descColWidth = (headerRow.children[1] as FrameLike).width;
+    expect(headerRow.children[0] && (headerRow.children[0] as FrameLike).layoutSizingHorizontal).toBe('FIXED');
+    expect(headerRow.children[1] && (headerRow.children[1] as FrameLike).layoutSizingHorizontal).toBe('FIXED');
+    expect(descColWidth).toBeGreaterThan(idColWidth);
   });
 
   it('every table cell stretches to fill the row height (no empty bands)', async () => {
