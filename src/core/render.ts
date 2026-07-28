@@ -1,7 +1,7 @@
 import type { Doc, Block, Inline, List, Run } from './model';
 import type { FigmaLike, FrameLike, TextLike, FontName, Paint } from './figma-like';
 import { setBlockTag, setCellTag } from './tag';
-import { flattenInlines } from './inline';
+import { flattenInlines, parseInlines } from './inline';
 import { themeFromBackground } from './theme';
 
 export type RGB = { r: number; g: number; b: number };
@@ -203,11 +203,16 @@ function renderBlock(b: Block, figma: FigmaLike, pal: Palette, text: RGB, link: 
       return f;
     }
     case 'list': return renderList(b, figma, pal, text, link, codeText);
-    case 'table': return renderTable(b, figma, pal, text, link);
+    case 'table': return renderTable(b, figma, pal, text, link, codeText);
   }
 }
 
-function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette, text: RGB, link: RGB): FrameLike {
+// 셀 문자열에서 마크다운 마커를 걷어낸 평문(렌더될 실제 글자)만 뽑는다 — 열 폭 측정용.
+function strippedCellText(s: string): string {
+  return flattenInlines(parseInlines(s)).map(x => x.text).join('');
+}
+
+function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette, text: RGB, link: RGB, codeText: RGB): FrameLike {
   const grid = figma.createFrame(); grid.layoutMode = 'VERTICAL'; grid.itemSpacing = 1;
   grid.primaryAxisSizingMode = 'AUTO'; grid.fills = solid(pal.line);
   const allRows = [b.header, ...b.rows];
@@ -226,10 +231,15 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
       cellFrame.paddingTop = cellFrame.paddingBottom = 6;
       cellFrame.paddingLeft = cellFrame.paddingRight = 10;
       cellFrame.fills = solid(r === 0 ? pal.headerBg : pal.cellBg);
+      const isHeader = r === 0;
+      const cellInlines = parseInlines(cell);
+      const runs = flattenInlines(cellInlines);
       const t = figma.createText();
-      t.characters = cell;
+      t.fontName = isHeader ? { family: 'Inter', style: 'Bold' } : REGULAR;
+      t.characters = runs.map(x => x.text).join('');
       t.textAutoResize = 'HEIGHT';
-      paintUniform(t, r === 0 ? { family: 'Inter', style: 'Bold' } : REGULAR, text);
+      t.fills = solid(text);
+      applyRuns(t, runs, text, link, codeText, 0, isHeader);
       cellFrame.appendChild(t);
       fillWidth(t);
       setCellTag(cellFrame, r, c);
@@ -249,7 +259,7 @@ function renderTable(b: import('./model').Table, figma: FigmaLike, pal: Palette,
       for (const rowCellFrames of cellFrames) fillWidth(rowCellFrames[c]);
       continue;
     }
-    const maxChar = Math.max(...allRows.map(row => charWidth(row[c] ?? '')));
+    const maxChar = Math.max(...allRows.map(row => charWidth(strippedCellText(row[c] ?? ''))));
     const wCol = Math.min(Math.max(COL_PAD + maxChar, COL_MIN), COL_MAX);
     for (const rowCellFrames of cellFrames) {
       const cellFrame = rowCellFrames[c];

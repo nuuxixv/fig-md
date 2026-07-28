@@ -1,7 +1,7 @@
 import type { Doc, Block, Inline, List, ListItem, Run } from './model';
 import type { FrameLike, SceneLike, TextLike } from './figma-like';
 import { getBlockTag, getCellTag } from './tag';
-import { runsToInlines } from './inline';
+import { runsToInlines, serializeInlines } from './inline';
 import { MIXED } from './figma-like';
 
 export function readDoc(page: FrameLike): { doc: Doc; warnings: string[] } {
@@ -78,7 +78,8 @@ function readTable(grid: FrameLike): import('./model').Table {
       const ct = getCellTag(cell);
       if (ct) {
         const tn = (cell as FrameLike).children[0] as TextLike | undefined;
-        row[ct.c] = tn ? tn.characters : '';
+        const isHeader = ct.r === 0;
+        row[ct.c] = tn ? serializeInlines(readInlines(tn, 0, tn.characters.length, isHeader)) : '';
       }
     }
     for (let c = 0; c < cols; c++) if (row[c] === undefined) row[c] = '';

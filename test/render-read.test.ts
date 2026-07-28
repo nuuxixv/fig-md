@@ -70,3 +70,26 @@ describe('render→read heading inline styling (V2)', () => {
 describe('render→read table', () => {
   it('2x2', () => nodeRoundtrip('| A | B |\n| --- | --- |\n| 1 | 2 |'));
 });
+
+describe('render→read table cell inline styling', () => {
+  it('body cell bold/italic round-trip', () =>
+    nodeRoundtrip('| A | B |\n| --- | --- |\n| **bold** | *it* |'));
+
+  it('body cell code + link round-trip', () =>
+    nodeRoundtrip('| A | B |\n| --- | --- |\n| `code` | [x](http://y) |'));
+
+  it('plain cells unaffected', () =>
+    nodeRoundtrip('| A | B |\n| --- | --- |\n| plain | text |'));
+
+  it('header cell **H** normalizes to H (bold is header baseline, redundant marker dropped)', async () => {
+    const doc = parseMarkdown('| **H** | plain |\n| --- | --- |\n| a | b |');
+    const page = await renderDoc(doc, new FakeFigma());
+    const { doc: back, warnings } = readDoc(page);
+    expect(warnings).toEqual([]);
+    const out = norm(serializeDoc(back));
+    expect(out).toContain('| H | plain |');
+  });
+
+  it('header cell italic/code/link still round-trip', () =>
+    nodeRoundtrip('| *H* | `c` |\n| --- | --- |\n| a | b |'));
+});

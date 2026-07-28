@@ -91,6 +91,31 @@ describe('render layout — real-Figma sizing/appearance', () => {
     expect(descColWidth).toBeGreaterThan(idColWidth);
   });
 
+  it('column width is measured from stripped cell text, not raw markdown markers', async () => {
+    // Without stripping, '**bold-marker-padding**' (with ** markers) would measure wider
+    // than the plain 'x'-only column; assert the marker characters don't inflate the width
+    // beyond what the rendered (stripped) text would produce.
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| **x** | y |');
+    const page = await renderDoc(doc, new FakeFigma());
+    const grid = page.children[0] as FrameLike;
+    const headerRow = grid.children[0] as FrameLike;
+    const firstColWidth = (headerRow.children[0] as FrameLike).width;
+    // stripped first-col content is just "x"/"A" (short) — should hit the MIN width,
+    // not a width inflated by the raw "**x**" (5 chars) markdown markers.
+    expect(firstColWidth).toBe(52); // COL_MIN
+  });
+
+  it('table cell renders inline formatting (bold run on a body cell)', async () => {
+    const doc = parseMarkdown('| A | B |\n| --- | --- |\n| **bold** | plain |');
+    const page = await renderDoc(doc, new FakeFigma());
+    const grid = page.children[0] as FrameLike;
+    const bodyRow = grid.children[1] as FrameLike;
+    const cellFrame = bodyRow.children[0] as FrameLike;
+    const t = cellFrame.children[0] as TextLike;
+    expect(t.characters).toBe('bold'); // markers stripped from rendered text
+    expect(t.getRangeFontName(0, 4)).toEqual({ family: 'Inter', style: 'Bold' });
+  });
+
   it('every table cell stretches to fill the row height (no empty bands)', async () => {
     const doc = parseMarkdown('| A | B |\n| --- | --- |\n| 1 | 2 |');
     const page = await renderDoc(doc, new FakeFigma());
